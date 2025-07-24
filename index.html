@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuestLog - Gamified To-Do List</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-light: #f8fafc;
+            --bg-dark: #1e293b;
+            --card-light: #ffffff;
+            --card-dark: #334155;
+            --text-light: #1e293b;
+            --text-dark: #f1f5f9;
+            --border-light: #e2e8f0;
+            --border-dark: #475569;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-light);
+            transition: all 0.3s ease;
+            min-height: 100vh;
+        }
+
+        body.dark {
+            background: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.7;
+        }
+
+        .level-section {
+            background: var(--card-light);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        body.dark .level-section {
+            background: var(--card-dark);
+        }
+
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stats-btn {
+            background: linear-gradient(45deg, #8b5cf6, #7c3aed);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stats-btn:hover {
+            background: linear-gradient(45deg, #7c3aed, #6d28d9);
+            transform: scale(1.05);
+        }
+
+        .level-badge {
+            background: linear-gradient(45deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .xp-text {
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        .xp-bar-container {
+            background: var(--border-light);
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body.dark .xp-bar-container {
+            background: var(--border-dark);
+        }
+
+        .xp-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--secondary), #059669);
+            border-radius: 10px;
+            transition: width 0.8s ease;
+            position: relative;
+        }
+
+        .xp-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .task-form {
+            background: var(--card-light);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        body.dark .task-form {
+            background: var(--card-dark);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: var(--bg-light);
+            color: var(--text-light);
+            transition: all 0.3s ease;
+        }
+
+        body.dark input,
+        body.dark textarea {
+            background: var(--bg-dark);
+            color: var(--text-dark);
+            border-color: var(--border-dark);
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .xp-input {
+            width: 100px;
+        }
+
+        .add-btn {
+            background: linear-gradient(45deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .tasks-container {
+            background: var(--card-light);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        body.dark .tasks-container {
+            background: var(--card-dark);
+        }
+
+        .tasks-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .task-item {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid var(--border-light);
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+
+        body.dark .task-item {
+            background: var(--bg-dark);
+            border-color: var(--border-dark);
+        }
+
+        .task-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .task-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .task-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            cursor: pointer;
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .task-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .task-description {
+            opacity: 0.7;
+            margin-bottom: 10px;
+        }
+
+        .task-xp {
+            background: linear-gradient(45deg, var(--warning), #d97706);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .task-due-date {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .due-today {
+            background: linear-gradient(45deg, var(--danger), #dc2626);
+            color: white;
+        }
+
+        .due-tomorrow {
+            background: linear-gradient(45deg, var(--warning), #d97706);
+            color: white;
+        }
+
+        .due-soon {
+            background: linear-gradient(45deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        .due-later {
+            background: var(--border-light);
+            color: var(--text-light);
+        }
+
+        body.dark .due-later {
+            background: var(--border-dark);
+            color: var(--text-dark);
+        }
+
+        .overdue {
+            background: linear-gradient(45deg, #dc2626, #b91c1c);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .task-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .complete-btn {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .complete-btn:hover {
+            background: #059669;
+            transform: scale(1.05);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.6;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            background: var(--primary-dark);
+        }
+
+        .levelup-animation {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #ffd700, #ffed4a);
+            color: #333;
+            padding: 30px;
+            border-radius: 20px;
+            font-size: 2rem;
+            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+            animation: levelUpPulse 2s ease-in-out;
+            z-index: 1001;
+        }
+
+        @keyframes levelUpPulse {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+
+        /* Stats Modal Styles */
+        .stats-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .stats-modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .stats-content {
+            background: var(--card-light);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease;
+        }
+
+        body.dark .stats-content {
+            background: var(--card-dark);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border-light);
+            padding-bottom: 15px;
+        }
+
+        body.dark .stats-header {
+            border-color: var(--border-dark);
+        }
+
+        .stats-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .close-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid var(--border-light);
+            transition: all 0.3s ease;
+        }
+
+        body.dark .stat-card {
+            background: var(--bg-dark);
+            border-color: var(--border-dark);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chart-container {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid var(--border-light);
+        }
+
+        body.dark .chart-container {
+            background: var(--bg-dark);
+            border-color: var(--border-dark);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        .time-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: var(--border-light);
+            color: var(--text-light);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        body.dark .filter-btn {
+            background: var(--border-dark);
+            color: var(--text-dark);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .filter-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .achievement-badge {
+            background: linear-gradient(45deg, #ffd700, #ffed4a);
+            color: #333;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-weight: bold;
+            margin-top: 10px;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .level-info {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .task-content {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .tasks-header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+
+            .stats-content {
+                width: 95%;
+                padding: 20px;
+                max-height: 95vh;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 15px;
+            }
+
+            .chart-wrapper {
+                height: 250px;
+            }
+
+            .time-filter {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+    
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🎮 QuestLog</h1>
+            <p class="subtitle">Turn your tasks into epic quests!</p>
+        </div>
+
+        <div class="level-section">
+            <div class="level-info">
+                <div class="level-badge">
+                    <span id="level-text">Level 1</span>
+                </div>
+                <button class="stats-btn" onclick="openStats()">
+                    <span>📊</span>
+                    View Stats
+                </button>
+                <div class="xp-text">
+                    <span id="current-xp">0</span> / <span id="next-level-xp">100</span> XP
+                </div>
+            </div>
+            <div class="xp-bar-container">
+                <div class="xp-bar" id="xp-bar" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="task-form">
+            <h2>📝 Add New Quest</h2>
+            <div class="form-group">
+                <label for="task-title">Quest Title *</label>
+                <input type="text" id="task-title" placeholder="What needs to be conquered?" required>
+            </div>
+            <div class="form-group">
+                <label for="task-description">Quest Description</label>
+                <textarea id="task-description" rows="3" placeholder="Optional details about your quest..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="task-xp">XP Reward *</label>
+                <input type="number" id="task-xp" class="xp-input" value="10" min="1" max="500" required>
+            </div>
+            <div class="form-group">
+                <label for="task-due-date">Due Date (Optional)</label>
+                <input type="date" id="task-due-date">
+            </div>
+            <button class="add-btn" onclick="addTask()">
+                <span>➕</span>
+                Add Quest
+            </button>
+        </div>
+
+        <div class="tasks-container">
+            <div class="tasks-header">
+                <h2>🏆 Active Quests</h2>
+                <div class="xp-text">Total XP: <span id="total-xp">0</span></div>
+            </div>
+            <div id="tasks-list">
+                <div class="empty-state">
+                    <div class="empty-icon">🎯</div>
+                    <p>No active quests. Add your first quest above!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Modal -->
+    <div class="stats-modal" id="stats-modal">
+        <div class="stats-content">
+            <div class="stats-header">
+                <h2 class="stats-title">📊 Quest Statistics</h2>
+                <button class="close-btn" onclick="closeStats()">×</button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-today">0</div>
+                    <div class="stat-label">XP Today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-week">0</div>
+                    <div class="stat-label">XP This Week</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-month">0</div>
+                    <div class="stat-label">XP This Month</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-total">0</div>
+                    <div class="stat-label">Total XP</div>
+                </div>
+            </div>
+
+            <div class="time-filter">
+                <button class="filter-btn active" onclick="setTimeFilter('7days')" id="filter-7days">Last 7 Days</button>
+                <button class="filter-btn" onclick="setTimeFilter('4weeks')" id="filter-4weeks">Last 4 Weeks</button>
+                <button class="filter-btn" onclick="setTimeFilter('30days')" id="filter-30days">Last 30 Days</button>
+                <button class="filter-btn" onclick="setTimeFilter('all')" id="filter-all">All Time</button>
+            </div>
+
+            <div class="chart-container">
+                <h3 class="chart-title" id="chart-title">Daily XP Progress - Last 7 Days</h3>
+                <div class="chart-wrapper">
+                    <canvas id="xp-chart"></canvas>
+                </div>
+            </div>
+
+            <div id="achievements"></div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let gameState = {
+            level: 1,
+            totalXP: 0,
+            currentLevelXP: 0,
+            tasks: [],
+            completedTasks: [], // New: Track completed tasks with timestamps
+            isDark: false
+        };
+
+        let currentChart = null;
+        let currentTimeFilter = '7days';
+
+        // Load game state from localStorage
+        function loadGameState() {
+            const saved = localStorage.getItem('questlog-gamestate');
+            if (saved) {
+                gameState = { ...gameState, ...JSON.parse(saved) };
+            }
+            
+            // Apply theme
+            if (gameState.isDark) {
+                document.body.classList.add('dark');
+                document.querySelector('.theme-toggle').textContent = '☀️';
+            }
+            
+            updateUI();
+        }
+
+        // Save game state to localStorage
+        function saveGameState() {
+            localStorage.setItem('questlog-gamestate', JSON.stringify(gameState));
+        }
+
+        // Calculate XP needed for next level
+        function getXPForLevel(level) {
+            return level * 100; // Each level requires 100 more XP
+        }
+
+        // Update UI elements
+        function updateUI() {
+            // Update level and XP display
+            document.getElementById('level-text').textContent = `Level ${gameState.level}`;
+            document.getElementById('total-xp').textContent = gameState.totalXP;
+            
+            const xpForCurrentLevel = getXPForLevel(gameState.level);
+            const xpForNextLevel = getXPForLevel(gameState.level + 1);
+            const currentLevelProgress = gameState.totalXP - xpForCurrentLevel + getXPForLevel(1);
+            const xpNeededForNext = xpForNextLevel - xpForCurrentLevel;
+            
+            document.getElementById('current-xp').textContent = currentLevelProgress;
+            document.getElementById('next-level-xp').textContent = xpNeededForNext;
+            
+            // Update XP bar
+            const progressPercentage = (currentLevelProgress / xpNeededForNext) * 100;
+            document.getElementById('xp-bar').style.width = `${Math.min(progressPercentage, 100)}%`;
+            
+            // Render tasks
+            renderTasks();
+        }
+
+        // Render task list
+        function renderTasks() {
+            const tasksList = document.getElementById('tasks-list');
+            
+            if (gameState.tasks.length === 0) {
+                tasksList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🎯</div>
+                        <p>No active quests. Add your first quest above!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            tasksList.innerHTML = gameState.tasks.map((task, index) => {
+                const dueDateBadge = getDueDateBadge(task.dueDate);
+                return `
+                    <div class="task-item">
+                        <div class="task-content">
+                            <input type="checkbox" class="task-checkbox" onchange="completeTask(${index})">
+                            <div class="task-info">
+                                <div class="task-title">${escapeHtml(task.title)}</div>
+                                ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
+                                <div class="task-badges">
+                                    <span class="task-xp">⭐ ${task.xp} XP</span>
+                                    ${dueDateBadge}
+                                </div>
+                            </div>
+                            <button class="complete-btn" onclick="completeTask(${index})">
+                                Complete ✓
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Add new task
+        function addTask() {
+            const titleInput = document.getElementById('task-title');
+            const descriptionInput = document.getElementById('task-description');
+            const xpInput = document.getElementById('task-xp');
+            const dueDateInput = document.getElementById('task-due-date');
+            
+            const title = titleInput.value.trim();
+            const description = descriptionInput.value.trim();
+            const xp = parseInt(xpInput.value) || 10;
+            const dueDate = dueDateInput.value || null;
+            
+            if (!title) {
+                alert('Please enter a quest title!');
+                return;
+            }
+            
+            if (xp < 1 || xp > 500) {
+                alert('XP must be between 1 and 500!');
+                return;
+            }
+            
+            // Add task to game state
+            gameState.tasks.push({
+                id: Date.now(),
+                title,
+                description,
+                xp,
+                dueDate,
+                completed: false
+            });
+            
+            // Clear form
+            titleInput.value = '';
+            descriptionInput.value = '';
+            xpInput.value = '10';
+            dueDateInput.value = '';
+            
+            // Sort tasks by due date (overdue and due soon first)
+            sortTasksByDueDate();
+            
+            saveGameState();
+            updateUI();
+        }
+
+        // Complete task
+        function completeTask(index) {
+            const task = gameState.tasks[index];
+            if (!task) return;
+            
+            // Add XP
+            const oldLevel = gameState.level;
+            gameState.totalXP += task.xp;
+            
+            // Store completed task with timestamp
+            gameState.completedTasks.push({
+                ...task,
+                completedAt: new Date().toISOString(),
+                completedTimestamp: Date.now()
+            });
+            
+            // Check for level up
+            const xpForNextLevel = getXPForLevel(gameState.level + 1);
+            if (gameState.totalXP >= xpForNextLevel) {
+                gameState.level++;
+                showLevelUpAnimation();
+            }
+            
+            // Remove completed task
+            gameState.tasks.splice(index, 1);
+            
+            saveGameState();
+            updateUI();
+        }
+
+        // Show level up animation
+        function showLevelUpAnimation() {
+            const animation = document.createElement('div');
+            animation.className = 'levelup-animation';
+            animation.innerHTML = `🎉 LEVEL UP! 🎉<br>Level ${gameState.level}`;
+            document.body.appendChild(animation);
+            
+            setTimeout(() => {
+                document.body.removeChild(animation);
+            }, 2000);
+        }
+
+        // Toggle dark/light theme
+        function toggleTheme() {
+            gameState.isDark = !gameState.isDark;
+            document.body.classList.toggle('dark');
+            document.querySelector('.theme-toggle').textContent = gameState.isDark ? '☀️' : '🌙';
+            saveGameState();
+        }
+
+        // Handle Enter key in form
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.target.id === 'task-title' || e.target.id === 'task-xp')) {
+                e.preventDefault();
+                addTask();
+            }
+        });
+
+        // Initialize app
+        loadGameState();
+
+        // Due date functionality
+        function getDueDateBadge(dueDate) {
+            if (!dueDate) return '';
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const due = new Date(dueDate);
+            due.setHours(0, 0, 0, 0);
+            
+            const diffTime = due.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            let className = '';
+            let text = '';
+            let icon = '';
+            
+            if (diffDays < 0) {
+                className = 'overdue';
+                text = `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'} overdue`;
+                icon = '🚨';
+            } else if (diffDays === 0) {
+                className = 'due-today';
+                text = 'Due today';
+                icon = '🔥';
+            } else if (diffDays === 1) {
+                className = 'due-tomorrow';
+                text = 'Due tomorrow';
+                icon = '⏰';
+            } else if (diffDays <= 3) {
+                className = 'due-soon';
+                text = `Due in ${diffDays} days`;
+                icon = '📅';
+            } else if (diffDays <= 7) {
+                className = 'due-later';
+                text = `Due in ${diffDays} days`;
+                icon = '📆';
+            } else {
+                className = 'due-later';
+                const dueDateFormatted = due.toLocaleDateString();
+                text = `Due ${dueDateFormatted}`;
+                icon = '📆';
+            }
+            
+            return `<span class="task-due-date ${className}">${icon} ${text}</span>`;
+        }
+
+        function sortTasksByDueDate() {
+            gameState.tasks.sort((a, b) => {
+                // Tasks without due dates go to the bottom
+                if (!a.dueDate && !b.dueDate) return 0;
+                if (!a.dueDate) return 1;
+                if (!b.dueDate) return -1;
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const dueDateA = new Date(a.dueDate);
+                dueDateA.setHours(0, 0, 0, 0);
+                const dueDateB = new Date(b.dueDate);
+                dueDateB.setHours(0, 0, 0, 0);
+                
+                const diffA = dueDateA.getTime() - today.getTime();
+                const diffB = dueDateB.getTime() - today.getTime();
+                
+                // Overdue tasks first (most overdue first)
+                if (diffA < 0 && diffB < 0) return diffA - diffB;
+                if (diffA < 0 && diffB >= 0) return -1;
+                if (diffA >= 0 && diffB < 0) return 1;
+                
+                // Then sort by due date (earliest first)
+                return diffA - diffB;
+            });
+        }
+
+        // Sort tasks on load
+        function updateUI() {
+            // Sort tasks by due date before rendering
+            sortTasksByDueDate();
+            
+            // Update level and XP display
+            document.getElementById('level-text').textContent = `Level ${gameState.level}`;
+            document.getElementById('total-xp').textContent = gameState.totalXP;
+            
+            const xpForCurrentLevel = getXPForLevel(gameState.level);
+            const xpForNextLevel = getXPForLevel(gameState.level + 1);
+            const currentLevelProgress = gameState.totalXP - xpForCurrentLevel + getXPForLevel(1);
+            const xpNeededForNext = xpForNextLevel - xpForCurrentLevel;
+            
+            document.getElementById('current-xp').textContent = currentLevelProgress;
+            document.getElementById('next-level-xp').textContent = xpNeededForNext;
+            
+            // Update XP bar
+            const progressPercentage = (currentLevelProgress / xpNeededForNext) * 100;
+            document.getElementById('xp-bar').style.width = `${Math.min(progressPercentage, 100)}%`;
+            
+            // Render tasks
+            renderTasks();
+        }
+
+        // Stats functionality
+        function openStats() {
+            document.getElementById('stats-modal').classList.add('active');
+            updateStatsDisplay();
+            renderChart();
+        }
+
+        function closeStats() {
+            document.getElementById('stats-modal').classList.remove('active');
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+        }
+
+        function setTimeFilter(filter) {
+            currentTimeFilter = filter;
+            
+            // Update filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`filter-${filter}`).classList.add('active');
+            
+            renderChart();
+        }
+
+        function updateStatsDisplay() {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const thisWeek = new Date(today);
+            thisWeek.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+            const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            const todayXP = gameState.completedTasks
+                .filter(task => new Date(task.completedAt) >= today)
+                .reduce((sum, task) => sum + task.xp, 0);
+
+            const weekXP = gameState.completedTasks
+                .filter(task => new Date(task.completedAt) >= thisWeek)
+                .reduce((sum, task) => sum + task.xp, 0);
+
+            const monthXP = gameState.completedTasks
+                .filter(task => new Date(task.completedAt) >= thisMonth)
+                .reduce((sum, task) => sum + task.xp, 0);
+
+            document.getElementById('stat-today').textContent = todayXP;
+            document.getElementById('stat-week').textContent = weekXP;
+            document.getElementById('stat-month').textContent = monthXP;
+            document.getElementById('stat-total').textContent = gameState.totalXP;
+
+            updateAchievements();
+        }
+
+        function updateAchievements() {
+            const achievementsEl = document.getElementById('achievements');
+            const achievements = [];
+
+            // Check for personal records
+            const dailyXPTotals = getDailyXPTotals();
+            const maxDailyXP = Math.max(...Object.values(dailyXPTotals), 0);
+            const todayXP = dailyXPTotals[new Date().toDateString()] || 0;
+
+            if (todayXP > 0 && todayXP === maxDailyXP && maxDailyXP > 50) {
+                achievements.push(`🏆 Personal Best Day: ${maxDailyXP} XP!`);
+            }
+
+            if (gameState.level >= 5) {
+                achievements.push(`⭐ Level Master: Reached Level ${gameState.level}!`);
+            }
+
+            if (gameState.completedTasks.length >= 50) {
+                achievements.push(`🎯 Quest Veteran: ${gameState.completedTasks.length} Quests Completed!`);
+            }
+
+            if (achievements.length > 0) {
+                achievementsEl.innerHTML = `
+                    <div class="chart-container">
+                        <h3 class="chart-title">🏆 Achievements</h3>
+                        ${achievements.map(achievement => `<div class="achievement-badge">${achievement}</div>`).join('')}
+                    </div>
+                `;
+            } else {
+                achievementsEl.innerHTML = '';
+            }
+        }
+
+        function getDailyXPTotals() {
+            const dailyTotals = {};
+            
+            gameState.completedTasks.forEach(task => {
+                const date = new Date(task.completedAt).toDateString();
+                dailyTotals[date] = (dailyTotals[date] || 0) + task.xp;
+            });
+
+            return dailyTotals;
+        }
+
+        function getWeeklyXPTotals() {
+            const weeklyTotals = {};
+            
+            gameState.completedTasks.forEach(task => {
+                const date = new Date(task.completedAt);
+                const weekStart = new Date(date);
+                weekStart.setDate(date.getDate() - date.getDay());
+                const weekKey = weekStart.toDateString();
+                weeklyTotals[weekKey] = (weeklyTotals[weekKey] || 0) + task.xp;
+            });
+
+            return weeklyTotals;
+        }
+
+        function renderChart() {
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            const ctx = document.getElementById('xp-chart').getContext('2d');
+            const isDark = document.body.classList.contains('dark');
+            
+            let data = {};
+            let labels = [];
+            let chartData = [];
+            let title = '';
+
+            const now = new Date();
+
+            if (currentTimeFilter === '7days') {
+                title = 'Daily XP Progress - Last 7 Days';
+                const dailyTotals = getDailyXPTotals();
+                
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date(now);
+                    date.setDate(now.getDate() - i);
+                    const dateStr = date.toDateString();
+                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                    
+                    labels.push(dayName);
+                    chartData.push(dailyTotals[dateStr] || 0);
+                }
+            } else if (currentTimeFilter === '4weeks') {
+                title = 'Weekly XP Progress - Last 4 Weeks';
+                const weeklyTotals = getWeeklyXPTotals();
+                
+                for (let i = 3; i >= 0; i--) {
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - (now.getDay() + (i * 7)));
+                    const weekKey = weekStart.toDateString();
+                    const weekLabel = `Week ${weekStart.getMonth() + 1}/${weekStart.getDate()}`;
+                    
+                    labels.push(weekLabel);
+                    chartData.push(weeklyTotals[weekKey] || 0);
+                }
+            } else if (currentTimeFilter === '30days') {
+                title = 'Daily XP Progress - Last 30 Days';
+                const dailyTotals = getDailyXPTotals();
+                
+                for (let i = 29; i >= 0; i--) {
+                    const date = new Date(now);
+                    date.setDate(now.getDate() - i);
+                    const dateStr = date.toDateString();
+                    const dayLabel = `${date.getMonth() + 1}/${date.getDate()}`;
+                    
+                    labels.push(dayLabel);
+                    chartData.push(dailyTotals[dateStr] || 0);
+                }
+            } else { // all time
+                title = 'All Time XP Progress';
+                const dailyTotals = getDailyXPTotals();
+                const sortedDates = Object.keys(dailyTotals).sort((a, b) => new Date(a) - new Date(b));
+                
+                sortedDates.forEach(dateStr => {
+                    const date = new Date(dateStr);
+                    const dayLabel = `${date.getMonth() + 1}/${date.getDate()}`;
+                    labels.push(dayLabel);
+                    chartData.push(dailyTotals[dateStr]);
+                });
+
+                // Limit to last 60 days for readability
+                if (labels.length > 60) {
+                    labels = labels.slice(-60);
+                    chartData = chartData.slice(-60);
+                }
+            }
+
+            document.getElementById('chart-title').textContent = title;
+
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'XP Earned',
+                        data: chartData,
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 2,
+                        borderRadius: 4,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: isDark ? '#475569' : '#e2e8f0'
+                            },
+                            ticks: {
+                                color: isDark ? '#f1f5f9' : '#1e293b'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: isDark ? '#475569' : '#e2e8f0'
+                            },
+                            ticks: {
+                                color: isDark ? '#f1f5f9' : '#1e293b',
+                                maxTicksLimit: 12
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('stats-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeStats();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('stats-modal').classList.contains('active')) {
+                closeStats();
+            }
+        });
+    </script>
+</body>
+</html>
